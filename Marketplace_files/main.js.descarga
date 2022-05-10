@@ -1,0 +1,658 @@
+
+//var valorEventoCarrusel = "";
+var data = "";
+var cantidadValor = "";
+var empresaValor = "";	
+var cantidadEIV = "";
+var cantidadEFV = "";	
+var cantidadDias = "";
+var tipoConexionV = "";
+var amountValor = "";
+var amountUFValor = "";
+var valorProduct = "";
+var idProducto = "";	
+var moneda = "";
+var valorEF = "";
+var valorEI = "";
+var leyendaIva = "";
+var cantidadEI = null;
+var cantidadEF = null;
+var tipoConexion = null;
+var business = null;	
+var tipoConexiones = null;	
+var plan = null;
+var cantidad = null;
+var dias = null;
+var amount = null;
+var amountUF = null;
+var leyenda = null;
+var tipoVenta = "";
+
+$(document).ready(function() {
+		
+	/**	$('.carousel-control-prev, .carousel-control-next').on('click',function(event){
+            event.preventDefault();
+            valorEventoCarrusel = $(this).attr('data-slide');
+            });
+       
+        $('#carouselExampleControlsMobile, #carouselExampleControls').on('slid.bs.carousel',function(){
+            if(!$(this).find('.carousel-item.active').children().children().is(':visible')){  
+            	$(this).carousel(valorEventoCarrusel);
+            }
+        });*/
+        
+		if(trolleyE != ""){
+			trolley = JSON.parse(trolleyE);
+			var tokenTrolley = trolley.token;
+			var ruta = window.location.href;
+			if(tokenTrolley != "" && tokenTrolley != undefined && ruta.includes("trolley")){
+				$(".retoma-marketplace").hide();
+			}else{
+				$(".retoma-marketplace").show();
+			}
+			printCar(trolley)
+			
+		}else{
+			$(".widget-carrito-off").show();
+			$(".widget-carrito-on").hide();
+			$(".productsUnits").text("0");
+		}
+		
+	   inicializarFunciones();
+
+	});
+	
+function calculaAmountCar(thisSelect) {
+	var articleId = $(thisSelect).parents(".producto").attr("id");
+	var productSelect = trolley.productos.find(element => element.articleId === articleId);
+	var cantidadValor = $("#"+ articleId +" .cantidad").val();
+	if(cantidadValor != null){
+		var amounts = {};
+		amounts = calculaPrecioUF(productSelect.valorProduct, parseFloat(cantidadValor), productSelect.valorRealUf, productSelect.moneda);
+		productSelect.cantidad = cantidadValor;
+		productSelect.amount = new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad));
+	}
+	$(".widget-carrito .amount").text("");
+	$(".widget-carrito .cantidadUf").text("");
+	$(".widget-carrito .cantidadUf").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(amounts.UF));
+	$(".widget-carrito .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad)));	
+}
+
+function validarCantidadEquipos(thisSelect){
+	var articleId = $(thisSelect).parents(".producto").attr("id");
+	var productSelect = trolley.productos.find(element => element.articleId === articleId);
+	var cantidadEI = $("#"+ articleId +" .cantidadEI").val();
+	var cantidadEF = $("#"+ articleId +" .cantidadEF").val();
+	var totalEI = parseFloat(cantidadEI);
+	var totalEF = parseFloat(cantidadEF);
+	var totalProductos =  totalEF +  totalEI;
+	if(totalProductos < 6){
+		$(" .carrito-float .send").prop("disabled",false);
+		$(" .carrito-float .send").removeClass("btn btn-disable");
+		$(" .carrito-float .send").addClass("btn btn-activo");
+	}else{
+		$(" .carrito-float .send").prop("disabled",true);
+		$(" .carrito-float .send").removeClass("btn btn-activo");
+		$(" .carrito-float .send").addClass("btn btn-disable");
+	}
+	
+	var amountsEI = calculaPrecioUF(productSelect.valorEI, totalEI, productSelect.valorRealUf, productSelect.moneda);
+	var amountsEF = calculaPrecioUF(productSelect.valorEF, totalEF, productSelect.valorRealUf, productSelect.moneda);
+	var amount = parseFloat(amountsEI.cantidad) + parseFloat(amountsEF.cantidad);
+	var UF = parseFloat(amountsEI.UF) + parseFloat(amountsEF.UF);
+	
+	productSelect.cantidadI = cantidadEI;
+	productSelect.cantidadF = cantidadEF;
+	productSelect.amount = new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amount));
+	
+	$(".widget-carrito .cantidadUf").text("");
+	$(".widget-carrito .cantidadUf").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(UF));
+	
+	$(".widget-carrito .amount").text("");
+	$(".widget-carrito .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amount)));	
+}
+
+function inicializarFunciones(){
+	
+	$('body').on('click', '.selectProduct', agregarProductoAlCarrito);	/** Agrega producto en el carrito*/
+	
+	$(".producto").on("click",".input-select .icon-menu-up", despliegaSelectsCarrito);	/** Despliega selects del carrito*/
+		
+	$(".producto").on("click",".ul-options .li-option", seleccionarOpcionesSelectCarrito); /** Seleccionar opciones de selects en el carrito*/
+	
+	$( ".deleteProduct" ).click(deleteProducts);	/** Eliminar productos del carrito*/
+
+	$( ".send" ).click(enviarSolicitud);	/** Enviar la solicitud del producto*/
+	
+	$(".btn-collapse").on("click", btnCollapseCarrito); /** Collapse detalle del producto en el carrito*/
+	
+	$(".btn-carrito").on("click", btnCarritoMobile); /** Botón del carrito mobile*/
+
+	$(".filtro").on("click", filtroVentaArriendo);	/** Selección de filtro venta o arriendo*/
+	
+	$(".eliminarFiltro").on("click", eliminarFiltro); /** Elimina el filtro seleccionado venta o arriendo*/
+}
+
+function agregarProductoAlCarrito(){
+	
+	var filtroActivo = $("#carouselExampleControls .wgt-category-filter-active").text().trim();
+	data = JSON.parse($(this).attr("data"));	
+	valorProduct = "";
+	valorEF = "";
+	valorEI = "";	
+	cantidadValor = $(this).parents(".card-productos-footer").find("select.cantidad").val();
+	empresaValor = $(this).parents(".card-productos-footer").find("select.businessA").val();	
+	cantidadEIV = $(this).parents(".card-productos-footer").find("select.cantidadEI").val();
+	cantidadEFV = $(this).parents(".card-productos-footer").find("select.cantidadEF").val();	
+	cantidadDias = $(this).parents(".card-productos-footer").find("select.rangoDias").val();
+	tipoConexionV = $(this).parents(".card-productos-footer").find("select.tipoConexion").val();
+	amountValor = $(this).parents(".card-productos-footer").find(".amount").text();
+	amountUFValor = $(this).parents(".card-productos-footer").find(".UF").text();
+	leyendaIva = $(this).parents(".card-productos-footer").find(".leyendaIva").text();
+	idProducto = data.parametrosFooter.productos[0].id;	
+	moneda = data.parametrosFooter.productos[0].tipoMoneda;	
+	cantidadEI = null;
+	cantidadEF = null;
+	tipoConexion = null;	
+	amount = null;
+	amountUF = null;
+	leyenda = null;
+	business = null;
+	tipoConexiones = null;
+	plan = null;
+	cantidad = null;
+	dias = null;   
+	tipoVenta = data.parametrosFooter.productos[0].tipoVenta;
+	
+	validaCalculoAmountLeyendaUF(); /** valida si hay calculo amount, amountUF y leyenda*/	
+	validaValorProducto();	
+	validaEmpresaConexionPlan();    
+	validaCantidadYdias();	/** valida dias seleccionados y valida cantidad*/
+	
+	producto = {
+			articleId:data.articleId, 
+			codigoProducto:idProducto,
+			title:data.titulo,
+			valorProduct:valorProduct,
+			valorEI:valorEI,
+			valorEF:valorEF,
+			valorRealUf:data.valorRealUf,
+			amount:amount,
+			amountUF:amountUF,
+			urlExterna:data.urlExterna,
+			tipoVenta:tipoVenta,
+			rangoCantidades:data.parametrosFooter.parametro.rangoCantidades,
+			cantidad:cantidad,
+			tipoProducto:data.parametrosFooter.productos[0].tipoProducto,
+			business:business,
+			plan:plan,
+			tipoConexiones:tipoConexiones,
+			cantidadI:cantidadEI,
+			cantidadF:cantidadEF,
+			tipoConexion:tipoConexion,
+			etiquetaVenta:data.etiquetaVenta,
+			tipoFlujo: data.tipoFlujo,
+			etiquetaTipoVenta: data.tipoVenta,
+			etiquetaProducto: data.producto,
+			cantidadDias: dias,
+			moneda:moneda,
+			leyendaIva: leyenda,
+			filtroActivo: filtroActivo
+		};
+	
+	
+	/**Logica para multiproducto
+//		if(trolley.productos == undefined){
+//			var productos = [];
+//			productos.push(producto);
+//			
+//			trolley.productos = productos;
+//		}else{
+//			trolley.productos.push(producto);
+//		}*/
+	
+	/**Logica monoproducto*/
+	var productos = [];
+	productos.push(producto);
+	trolley.productos = productos;
+				
+	agregarProductosGTM(trolley);
+	printCar(trolley);
+	
+	/**Evento que servira para enviar el toast al agregar producto*/
+	if(window.matchMedia("(max-width: 1124px)").matches){
+		$(".toast-info").stop();
+		$(".toast-info").fadeIn().delay(7000).fadeOut();
+    } 
+}
+
+function validaCalculoAmountLeyendaUF(){
+	if(amountValor != undefined && amountValor != ""){
+		amount = amountValor;		
+	}
+	
+	if(amountUFValor != undefined && amountUFValor != ""){
+		amountUF = amountUFValor;
+	}
+	
+	if(leyendaIva != undefined && leyendaIva != ""){
+		leyenda = leyendaIva;
+	}
+}
+
+function validaValorProducto(){
+	if(cantidadEIV != undefined && cantidadEFV != undefined){
+		cantidadEI = cantidadEIV;
+		cantidadEF = cantidadEFV;
+		
+		idProducto = data.parametrosFooter.id
+		
+		if(data.parametrosFooter.productos.length > 1 && data.parametrosFooter.productos[0].valor != undefined && data.parametrosFooter.productos[1].valor != undefined){
+			var conexionFija = data.parametrosFooter.productos.find(element => element.tipoConexion === "RED_INTERNET");
+			valorEF = conexionFija.valor;
+			
+			var conexionInalambrica = data.parametrosFooter.productos.find(element => element.tipoConexion === "RED_CELULAR");
+			valorEI = conexionInalambrica.valor;
+			
+			valorProduct = valorEF + valorEI;
+		}
+	}
+}
+
+function validaEmpresaConexionPlan(){
+
+	if(empresaValor != undefined){
+		business = data.empresas.find(element => element.companyName === empresaValor);
+		plan = null;
+	}
+	
+	if(data.parametrosFooter.parametro.tipoConexiones != null){
+		tipoConexiones = data.parametrosFooter.parametro.tipoConexiones;
+	}
+	
+	if(data.parametrosFooter.parametro.rangoCantidades == null && data.parametrosFooter.parametro.rangoDias == null && data.parametrosFooter.parametro.tipoConexiones == null){
+		if(data.parametrosFooter.productos.length > 0 && data.parametrosFooter.productos[0].valor != 0){
+			plan = data.parametrosFooter.productos[0].valor
+		}
+	}
+	
+}
+
+function validaCantidadYdias(){
+	if(cantidadValor != undefined){
+		cantidad = cantidadValor;
+		if(tipoConexionV != undefined){
+			tipoConexion = tipoConexionV;
+			var conexionSelect = data.parametrosFooter.productos.find(element => element.tipoConexion === tipoConexion);
+			valorProduct = conexionSelect.valor;
+			
+			idProducto = conexionSelect.id;
+			moneda = conexionSelect.tipoMoneda;
+			tipoVenta = conexionSelect.tipoVenta;
+		}else if(cantidadDias != undefined){
+			dias = cantidadDias;
+			if(cantidadDias <=20 ){
+				valorProduct = data.parametrosFooter.productos[0].valor;
+				idProducto = data.parametrosFooter.productos[0].id;
+				moneda = data.parametrosFooter.productos[0].tipoMoneda;
+				tipoVenta = data.parametrosFooter.productos[0].tipoVenta;
+			}else if(cantidadDias >20){
+				valorProduct = data.parametrosFooter.productos[1].valor;
+				idProducto = data.parametrosFooter.productos[1].id;
+				moneda = data.parametrosFooter.productos[1].tipoMoneda;
+				tipoVenta = data.parametrosFooter.productos[1].tipoVenta;
+			}
+		}else{
+			valorProduct = data.parametrosFooter.productos[0].valor;
+		}
+	}
+}
+
+function despliegaSelectsCarrito() {
+	event.preventDefault(); 
+	var thisOptions = $(this).parents(".select-container").find("ul.ul-options");
+	if($(thisOptions).is(":visible")){
+		$(this).parents(".input-select").removeClass("active");
+		$(this).removeClass("rotate-up").addClass("rotate-down");
+		$(this).css("transform","rotate(180deg)");
+		$(thisOptions).hide();
+	}else{
+		$("div.input-select").removeClass("active");
+		$(".icon-menu-up").removeClass("rotate-up").addClass("rotate-down");
+		$(".icon-menu-up").css("transform","rotate(180deg)");
+		$("ul.ul-options").hide();
+		$(this).parents(".input-select").addClass("active");
+		$(this).removeClass("rotate-down").addClass("rotate-up");
+		$(this).css("transform","rotate(0deg)");
+		$(thisOptions).show();
+	}
+}
+
+function btnCollapseCarrito() {
+	if($(this).attr("aria-expanded") == "true"){
+		$(this).find(".icon-menu-up").removeClass("rotate-up").addClass("rotate-down");
+		$(this).find(".icon-menu-up").css("transform","rotate(180deg)");
+		$(".producto").css("margin-bottom", "47px");
+	}else{
+		$(this).find(".icon-menu-up").removeClass("rotate-down").addClass("rotate-up");
+		$(this).find(".icon-menu-up").css("transform","rotate(0deg)");
+		$(".producto").css("margin-bottom", "16px");
+	}
+}
+
+function btnCarritoMobile(event) {
+	event.preventDefault(); 	
+	if($(".widget-carrito").is(':visible')){
+		$(".widget-carrito").fadeOut("slow");
+		$('[id^="carouselExampleControls"]').css("z-index","0");
+	}else{
+		$('[id^="carouselExampleControls"]').css("z-index","-1");
+		$(".widget-carrito").fadeIn("slow");
+	}
+}
+
+function filtroVentaArriendo(event) {
+	event.preventDefault();
+	filtroActivo = true;
+	
+	var type = $(this).attr("adquisicion");
+	
+	tipoFiltro = type;
+	
+	$(".showLabel").fadeIn("slow");
+	$(".eliminarFiltro .label-Btn").text("");
+	$(".eliminarFiltro .label-Btn").text(type);
+	
+	var value = JSON.parse($(".carousel button:first").attr("list"));
+	
+	
+	$(".filtro-float,.filtro-float-mobile").hide();
+	
+
+	procesarCategoria($("#namespace").val(), 1, value, $("#categoriaUrl").val());
+	
+	
+}
+
+function seleccionarOpcionesSelectCarrito() {
+	var thisSection = $(this).parents(".select-container");
+	var value = $(this).attr("value");
+	var text = $(this).text();
+	$(thisSection).find("select.input-select").val(value);
+	$(thisSection).find("div.input-select .value-select").text(text);
+	$(thisSection).find("div.input-select").removeClass("active");
+	$(thisSection).find(".icon-menu-up").removeClass("rotate-up").addClass("rotate-down");
+	$(thisSection).find(".icon-menu-up").css("transform","rotate(180deg)");
+	$(thisSection).find("ul.ul-options").hide();
+	if($(thisSection).find("div.input-select").hasClass("cantidadEF") || $(thisSection).find("div.input-select").hasClass("cantidadEI")){
+		validarCantidadEquipos(this)
+	}else{
+		calculaAmountCar(this)
+	}
+}
+
+function deleteProducts() {
+	var articleId = $(this).parents(".producto").attr("id");
+	trolley.productos.forEach( function(product, indice, array) {
+		if(product.articleId == articleId){
+			trolley.productos.splice(indice,1);
+			eliminarProductoGTM(product);
+		}
+	});
+	if(trolley.productos.length <= 0){
+		$(".widget-carrito-off").fadeIn("slow");
+		$(".widget-carrito-on").hide();
+	}else{
+	//	$(articleId).remove();
+	}
+	$(".productsUnits").text(trolley.productos.length);
+}
+
+function enviarSolicitud() {
+	 $.ajax({
+           type: "POST",
+           url: addCartURL,
+           data : {
+           	trolleyS: JSON.stringify(trolley)
+          },
+           beforeSend: function(){
+/**           	$('.ajax-loader').css("visibility", "visible");*/
+				},
+           success: function(data){
+           solicitarProductosGTM(trolley);
+           var destino = '';
+           	if(trolley.productos[0].tipoFlujo == "nuevo"){
+           		destino = new URL($("#configUrlFlujoNuevo").val().trim(), window.location);
+           		destino.searchParams.append("trolley", data);
+           		window.location = destino.href;
+           	}else{
+           		destino = new URL(trolley.productos[0].urlExterna, window.location);
+           		window.location = destino.href;
+           	}
+           	
+           },
+           error: function(data){
+           	console.log("error")
+/**             $('.ajax-loader').css("visibility", "hidden");*/
+               
+           },
+           complete:function(data){
+/**           	$('.ajax-loader').css("visibility", "hidden");*/
+		      }
+       });
+}
+
+function eliminarFiltro(event) {
+	event.preventDefault(); 	
+	filtroActivo = false;
+	
+	$(".showLabel").hide();
+	$(".eliminarFiltro .label-Btn").text("");
+	
+	var value = JSON.parse($(".carousel button:first").attr("list"));
+	
+	var categorias= $(".carousel .wgt-category-body"); 
+	
+	$(".filtro-float, .filtro-float-mobile").fadeIn("slow");
+	
+	
+	categorias.each( function(indice, categoria) {
+		
+		$(categoria).parents("button").attr("style","display: flex !important;");		
+		
+	});
+	
+	procesarCategoria($("#namespace").val(), 1, value, $("#categoriaUrl").val());
+		
+}
+
+function printCar(trolley) {
+	$(".carrito-float .send").prop("disabled",false);
+	$(".carrito-float .send").removeClass("btn btn-disable").addClass("btn btn-activo");
+	$(".widget-carrito-on").fadeIn("slow");
+	$(".widget-carrito-off").hide();
+	$(".productsUnits").text(trolley.productos.length);
+	
+	trolley.productos.forEach( function(trolley, indice, array) {
+	
+	// $(".carrito-titulo").text(trolley.title);nombre-producto
+	$("#nombre-producto").text(trolley.title);
+	
+	// tipo de venta a mostrar en carrito.
+	$(".tipoVenta").text("");
+	$(".tipoVenta").text(trolley.etiquetaTipoVenta);
+	
+	$(".producto").attr("id",trolley.articleId)
+	
+	verificaSiEsCantidad(trolley); /** Verifica si es un caso con numero de unidades*/
+	verificaSiEsProducto(trolley);	/** Verifica si es un caso con tipo de producto*/	
+	verificaSiEsEmpresa(trolley);	/** Verifica si es un caso con empresa*/
+	verificaSiEsTipoConexion(trolley);	/** Verifica si es un caso con tipos de conexion*/
+
+	//Verifica si se tiene el amont
+	var amounts = {};
+	if(trolley.amount != null){
+		//Verifica si es un caso con plan
+		if(trolley.plan != null && trolley.tipoConexiones == null){
+				$(".widget-carrito .amount").text("");
+				$(".widget-carrito .amount").text(trolley.amount);
+				
+				$(".widget-carrito .leyendaIva").text("");
+				$(".widget-carrito .leyendaIva").text(trolley.leyendaIva);
+				
+				var plan = '';
+				amounts = {};
+				amounts = calculaPrecioUF(trolley.plan, 1, trolley.valorRealUf, trolley.moneda);
+				plan = amounts.UF;
+				$(".widget-carrito .cantidadUf").text("");
+				$(".widget-carrito .cantidadUf").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(plan));
+				
+				$(".widget-carrito .total-pagar label").text("");
+				$(".widget-carrito .total-pagar label").text("Plan anual:");
+				
+				$(".widget-carrito .total-pagar").css("display", "block");		
+		}else{
+			$(".widget-carrito .amount").text("");
+			$(".widget-carrito .amount").text(trolley.amount);
+			
+			$(".widget-carrito .leyendaIva").text("");
+			$(".widget-carrito .leyendaIva").text(trolley.leyendaIva);
+			
+			$(".widget-carrito .cantidadUf").text("");
+			$(".widget-carrito .cantidadUf").text(trolley.amountUF);
+			
+			$(".widget-carrito .total-pagar").css("display", "block");
+		}
+	}else{
+		$(".widget-carrito .total-pagar").css("display", "none");
+	}
+	
+	if(trolley.tipoProducto == "SERVICIO_WEB"){
+		$("#"+ trolley.articleId +" .car-ribbon").css("visibility","hidden");
+		$(".widget-carrito .mesCarrito").text("");
+	}else{
+		$("#"+ trolley.articleId +" .car-ribbon").css("visibility","visible");
+		// Valida si es arriendo o compra
+		if(trolley.etiquetaVenta){
+			$("#"+ trolley.articleId +" .car-ribbon").text("");
+			$("#"+ trolley.articleId +" .car-ribbon").text("Compra de equipo");
+			$("#"+ trolley.articleId +" .car-ribbon").addClass("car-ribbon-venta").removeClass("car-ribbon-arriendo");
+			$(".widget-carrito .total-pagar label").text("");
+			$(".widget-carrito .total-pagar label").text("Total compra:");
+			$(".widget-carrito .mesCarrito").text("");
+		}else{
+			$("#"+ trolley.articleId +" .car-ribbon").text("");
+			$("#"+ trolley.articleId +" .car-ribbon").text("Equipo en arriendo");
+			$("#"+ trolley.articleId +" .car-ribbon").addClass("car-ribbon-arriendo").removeClass("car-ribbon-venta");
+			$(".widget-carrito .total-pagar label").text("");
+			$(".widget-carrito .total-pagar label").text("Total cuota arriendo:");
+			$(".widget-carrito .mesCarrito").text("");
+			$(".widget-carrito .mesCarrito").text("/ mes");
+		}
+	}
+
+	});
+}
+
+function verificaSiEsEmpresa(trolley){
+	if(trolley.business != null){
+		$(".imageBussines").attr("src", trolley.business.urlImage);
+		$(".buss").css("display", "block");
+	}else{
+		$(".buss").css("display", "none");
+	}
+}
+
+function verificaSiEsProducto(trolley){
+	if(trolley.tipoProducto != null && trolley.tipoConexiones == null){
+		$(".productoU").text("");
+		if(trolley.etiquetaProducto != null && trolley.etiquetaProducto != ""){
+			$(".productoU").text(trolley.etiquetaProducto);
+			$(".productoP").css("display", "block");
+		}else{
+			$(".productoP").css("display", "none");
+		}
+	}else{
+		$(".productoP").css("display", "none");
+	}
+}
+
+function verificaSiEsCantidad(trolley){
+	if(trolley.cantidad){
+			
+			$("#"+ trolley.articleId +" .cantidad").text("");
+			trolley.rangoCantidades.forEach( function(unit, indice, array) {
+				let option = '<option value="'+unit+'">'+unit+'</option>';
+	
+	            $("#"+ trolley.articleId +" .cantidad").append(option);
+			});
+			
+			$("#"+ trolley.articleId +" .cantidad").val(trolley.cantidad);
+			
+			$("#"+ trolley.articleId +" div.cantidad + .ul-options").remove();
+			$("#"+ trolley.articleId +" div.cantidad").remove();
+			customizeSelects("#"+ trolley.articleId +" .cantidad");
+			
+			$(".units").css("display", "block");
+		}else{
+			$(".units").css("display", "none");
+		}
+}
+
+function verificaSiEsTipoConexion(trolley){
+	if(trolley.tipoConexiones != null){
+		if(trolley.codigoProducto == "PACK_POS"){
+			$("#"+ trolley.articleId + " .cantidadEI").text("");
+			$("#"+ trolley.articleId + " .cantidadEF").text("");
+			trolley.rangoCantidades.forEach( function(unit, indice, array) {
+				let option = '<option value="'+unit+'">'+unit+'</option>';
+
+                $("#"+ trolley.articleId + " .cantidadEI").append(option);
+                $("#"+ trolley.articleId + " .cantidadEF").append(option);
+			});
+			
+			$("#"+ trolley.articleId + " .cantidadEI").val(trolley.cantidadI);
+			$("#"+ trolley.articleId + " .cantidadEF").val(trolley.cantidadF);
+			
+			$("#"+ trolley.articleId +" div.cantidadEI + .ul-options").remove();
+			$("#"+ trolley.articleId + " div.cantidadEI").remove();
+			customizeSelects("#"+ trolley.articleId + " .cantidadEI");
+			
+			$("#"+ trolley.articleId +" div.cantidadEF + .ul-options").remove();
+			$("#"+ trolley.articleId + " div.cantidadEF").remove();
+			customizeSelects("#"+ trolley.articleId + " .cantidadEF");
+			
+			$(".wirelessEquipment").css("display", "block");
+			$(".fixedEquipment").css("display", "block");
+			$(".tipo-conexion").css("display", "none");
+		}else{
+			$("#"+ trolley.articleId +" .cantidad").text("");
+			trolley.rangoCantidades.forEach( function(unit, indice, array) {
+				let option = '<option value="'+unit+'">'+unit+'</option>';
+
+                $("#"+ trolley.articleId +" .cantidad").append(option);
+			});
+			$("#"+ trolley.articleId +" .cantidad").val(trolley.cantidad);
+			$(".wirelessEquipment").css("display", "none");
+			$(".fixedEquipment").css("display", "none");
+			
+			$("#"+ trolley.articleId +" div.cantidad + .ul-options").remove();
+			$("#"+ trolley.articleId +" div.cantidad").remove();
+			customizeSelects("#"+ trolley.articleId +" .cantidad");
+			$(".units").css("display", "block");
+			
+			$(".tipo-conexion").css("display", "block");
+			
+			$(".tConexion").text("");
+			if(trolley.tipoConexion == "RED_INTERNET"){
+				$(".tConexion").text("Cable de internet");	
+			}else{
+				$(".tConexion").text("Chip 3G");
+			}
+		}
+	}else{
+		$(".wirelessEquipment").css("display", "none");
+		$(".fixedEquipment").css("display", "none");
+		$(".tipo-conexion").css("display", "none");
+	}
+} 

@@ -1,0 +1,535 @@
+document.getElementById('onboarding-card-filtro').getElementsByTagName('button')[0].click();
+
+$("#onboarding-card-filtro button").on("click", function(){
+	var filtro = $(this).children().eq(1).html().trim();
+});
+
+function selectedCategory(element, value) {
+	$('#onboarding-card-filtro').find("button").removeClass("wgt-category-filter-active roboto-medium").addClass("wgt-category-filter roboto-regular");
+	if ($(element).hasClass("wgt-category-filter roboto-regular")) {
+		$(element).removeClass("wgt-category-filter roboto-regular").addClass("wgt-category-filter-active roboto-medium");
+	}
+	
+	if(!filtroActivo){
+		if(element.outerText == "En tu sitio web" || element.outerText == "En redes sociales"){
+			$(".filtro-float").hide();
+		}else{
+			$(".filtro-float").show();
+		}
+	}	
+	
+	procesarCategoria($("#namespace").val(), 1, value, $("#categoriaUrl").val());
+}
+
+function pintarBodyCard(data, namespace){
+	
+	let idcardProducto = normalizarTexto(data.titulo);
+	
+		$("#card-body-onboarding").append("<div id='"+idcardProducto+"' class='card-productos-tbk'></div>");
+		
+		if(data.etiquetaVenta){
+			$("#"+idcardProducto).append("<div class='ribbon-cotainer'><label class='ribbon-venta roboto-regular font-12'>Disponible para compra</label></div>");
+		}
+		$("#"+idcardProducto).append("<div class='card-productos-body'></div>");
+		
+		$("#"+idcardProducto+" .card-productos-body").append("<div class='card-productos-body-descripcion'></div>");
+		
+		$("#"+idcardProducto+" .card-productos-body .card-productos-body-descripcion").append("<h2 class='roboto-bold titulo-card-tbk font-24' >"+data.titulo+"</h2>");
+		
+		if(data.mostrarModal){
+						
+			$("#"+idcardProducto+" .card-productos-body .card-productos-body-descripcion").append("<p>"+data.descripcion+" <a class='text-decoration-none abrir-modal' href='JavaScript:void(0);' onclick = 'abrirModal(this, event);'>"+data.textoPrincipalModal+"</a></p>");		
+			$("#"+idcardProducto+" .card-productos-body .card-productos-body-descripcion a.abrir-modal").attr("data-namespace",namespace);
+			$("#"+idcardProducto+" .card-productos-body .card-productos-body-descripcion a.abrir-modal").attr("data-id",data.articleId);
+			$("#"+idcardProducto+" .card-productos-body .card-productos-body-descripcion a.abrir-modal").attr("data-rutamodal",$("#procesarModalUrlAjax").val());
+		}else{
+			$("#"+idcardProducto+" .card-productos-body .card-productos-body-descripcion").append("<p>"+data.descripcion+"</p>");			
+		}
+
+		$("#"+idcardProducto+" .card-productos-body .card-productos-body-descripcion").append("<ul></ul>");
+
+		data.listDescripcionProductoModel.forEach(function(descripcion){
+			$("#"+idcardProducto+" .card-productos-body .card-productos-body-descripcion ul").append("<li><div style='width: 24px;height: 24px; margin-right: 12px;' class='d-flex justify-content-center'><img src='"+descripcion.caracteristica+"'/></div><p class='roboto-regular caracteristicas-card-tbk'>"+descripcion.descripcionCaracteristica+"</p></li>");
+		});
+		$("#"+idcardProducto+" .card-productos-body").append("<div class='d-flex  justify-content-center' ><img class='imagen-principal' src='"+data.imagenPrincipal+"' alt='"+data.descripcionAlt+"'></div>");
+
+	
+		/**Valida si que contenga informacion del servicio de productos*/
+	if(data.parametrosFooter != null){
+		/**pinta footer de card*/
+		pintarFooterCard(idcardProducto, data);
+	}else{
+		$(".filtro-float,.filtro-float-mobile").hide();
+	}
+	
+
+}
+
+function abrirModal(thisModal, event){	
+	event.preventDefault(); 
+	var namespace =	thisModal.getAttribute("data-namespace");
+	var articleId = thisModal.getAttribute("data-id");
+	var ajax = thisModal.getAttribute("data-rutamodal");
+	procesarModal(namespace,articleId,ajax);
+}
+
+function pintarFooterCard(idcardProducto, data){
+	$("#"+idcardProducto).append("<div class='card-productos-footer row'></div>");
+	$("#"+idcardProducto+" .card-productos-footer").append('<div class="row"></div>');
+		
+	if(data.tipoFlujo == "nuevo"){
+		
+		var options = "";
+
+		validaRangoDias(data, options, idcardProducto); /**		Valida caso para poner rango de dias*/
+		
+		validaPackPOS(data, options, idcardProducto); /**		Valida caso para Pack POS*/
+
+		validaSoloCantidadArticulos(data, options, idcardProducto); /**	Valida caso para articulos con solo cantidad de articulos*/
+		
+		if(undefined != data.parametrosFooter.parametro.ofertas){
+			
+			$("#"+idcardProducto+" .card-productos-footer div.row").append("<p class='col-sm-12 card-footer-txt roboto-medium font-14 text-right m-0' style='padding-left: 0px;'>"+data.parametrosFooter.parametro.ofertas+"<p>");
+		}
+		
+		if(undefined != data.parametrosFooter.parametro.tipoProveedores){
+
+			$("#"+idcardProducto+" .card-productos-footer div.row").append("<p class='col-sm-12 card-footer-txt roboto-medium font-14 text-right m-0' style='padding-left: 0px;'>"+data.parametrosFooter.parametro.tipoProveedores+"<p>");
+		}
+		
+		if(undefined != data.parametrosFooter.parametro.tipoIntegradores){
+			$("#"+idcardProducto+" .card-productos-footer div.row").append("<p class='col-sm-12 card-footer-txt roboto-medium font-14 text-right m-0' style='padding-left: 0px;'>"+data.parametrosFooter.parametro.tipoIntegradores+"<p>");
+		}
+				
+		switchCaseCreaTuSitioWebPST(data, idcardProducto);
+		
+	    validaQueNoTenganParametros(data, idcardProducto); /**Valida caso que no posea ningun parametro de tipo conexiones, rango de días y rango de cantidades*/
+		
+		$("#"+idcardProducto+" .card-productos-footer").append("<button data=\'"+JSON.stringify(data)+"\' type='button' class='btn-secondary-tbk roboto-medium font-16 selectProduct' style='font-size: 16px !important;' >Agregar</button>");
+		
+		var selects = $("#"+idcardProducto).find(".card-productos-footer .cantidad, .card-productos-footer .tipoConexion, .card-productos-footer .rangoDias, .card-productos-footer .cantidadEF, .card-productos-footer .cantidadEI");
+		 if(selects.length > 0){
+			selects.each(function(index,select){
+					calculaAmount(select);
+					customizeSelects(select);
+			});
+		 }
+		 
+		 var selectEmpresa = $("#"+idcardProducto).find(".card-productos-footer input.businessA");
+		 if(selectEmpresa.length > 0){
+			 validaEmpresa(selectEmpresa);
+		 }
+		
+	}else{
+	/**	$("#" + idcardProducto + " .card-productos-footer div.row").append("<span class='col-sm-12 card-footer-txt roboto-medium font-14 text-right m-0'><span>" + data.descripcionFooter.replace("%UF%",data.cantidadUf) + "</span></span>");	*/
+	
+		if(data.codigoProducto != "COBRO_QR"  && data.codigoProducto != "INTEGRA_MEDIO_PAGO_POR_TU_CUENTA" && data.codigoProducto != "CREA_TU_SITIO_WEB_CON_PST" && data.codigoProducto != "COBRA_CON_LINK_PAGO"){
+			$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><p class="card-footer-txt roboto-medium font-16 row"><span><span class="card-footer-txt-amount font-24">$<span class="amount">0</span> </span><span class="descripcionFooter">' + data.descripcionFooter + '</span></span></p><p class="card-footer-txt-medium roboto-regular font-12  leyendaIva">'+ data.leyendaIva +'</p><p class="card-footer-txt-light roboto-regular font-12 row"><span>Equivalente a: <span class="UF">0</span> UF + IVA</span></p></div>');/**+ data.cantidadUf + */
+		}else{
+			$("#" + idcardProducto + " .card-productos-footer div.row").append("<span class='col-sm-12 card-footer-txt roboto-medium font-14 text-right m-0'><span>" + data.descripcionFooter + "</span></span>");/** .replace("%UF%",data.cantidadUf)*/
+		}
+		
+		
+		$("#"+idcardProducto+" .card-productos-footer").append("<a href='"+data.urlExterna+"' class='btn-secondary-tbk roboto-medium font-16' style='font-size: 16px !important;' >Solicitar</a>");
+		calculaAmountFlujoAntiguo(data, idcardProducto);
+	}
+
+}
+
+function calculaAmountFlujoAntiguo(data, idcardProducto){
+
+	var amounts = {};
+	var valor = '';
+	var realUF = parseFloat(data.valorRealUf);
+	
+	if(data.parametrosFooter.parametro.tipoConexiones != null && data.parametrosFooter.parametro.rangoCantidades != null && data.codigoProducto == "PACK_POS"){	
+		pintarAmountFooterCarPackPOS(data, realUF, amounts, idcardProducto);
+	}else if(data.parametrosFooter.parametro.rangoCantidades != null && data.parametrosFooter.parametro.tipoConexiones == null && data.parametrosFooter.parametro.rangoDias == null && data.codigoProducto == "POS_MOVIL_FERIA"){
+		pintarAmountFooterCarPosMovilFeria(data, valor, amounts, realUF, idcardProducto);
+	}else if(data.parametrosFooter.parametro.rangoDias != null && data.parametrosFooter.parametro.rangoCantidades != null && data.codigoProducto == "POS_MOVIL_TEMPORAL"){
+		pintarAmountFooterCarPosTemporal(valor, data, amounts, realUF, idcardProducto);
+	}else if(data.codigoProducto != "COBRO_QR"  && data.codigoProducto != "INTEGRA_MEDIO_PAGO_POR_TU_CUENTA" && data.codigoProducto != "CREA_TU_SITIO_WEB_CON_PST" && data.codigoProducto != "COBRA_CON_LINK_PAGO"){
+		pintarAmountFooterCarOtrosProductos(data, realUF, amounts, idcardProducto);
+	}		
+}
+
+function pintarAmountFooterCarOtrosProductos(data, realUF, amounts, idcardProducto){
+
+	if(data.parametrosFooter.productos.length > 1 && data.parametrosFooter.productos[0].valor != undefined && data.parametrosFooter.productos[0].tipoConexion != null){
+		var conexionFija = data.parametrosFooter.productos.find(element => element.tipoConexion === "RED_INTERNET");
+		amounts = calculaPrecioUF(conexionFija.valor, 1, realUF, conexionFija.tipoMoneda);			
+	}else{
+		valor = data.parametrosFooter.productos[0].valor;
+		amounts = calculaPrecioUF(valor, 1, realUF, data.parametrosFooter.productos[0].tipoMoneda);	
+	}
+	
+	$("#"+idcardProducto+" .card-productos-footer .UF").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(amounts.UF));
+	$("#"+idcardProducto+" .card-productos-footer .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad)));
+
+}
+
+function pintarAmountFooterCarPackPOS(data, realUF, amounts, idcardProducto){
+
+	if(data.parametrosFooter.productos.length > 1 && data.parametrosFooter.productos[0].valor != undefined && data.parametrosFooter.productos[0].tipoConexion != undefined){
+		var conexionFija = data.parametrosFooter.productos.find(element => element.tipoConexion === "RED_INTERNET");
+		amounts = calculaPrecioUF(conexionFija.valor, 1, realUF, conexionFija.tipoMoneda);			
+	}
+	
+	$("#"+idcardProducto+" .card-productos-footer .UF").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(amounts.UF));
+	$("#"+idcardProducto+" .card-productos-footer .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad)));
+
+}
+
+function pintarAmountFooterCarPosMovilFeria(data, valor, amounts, realUF, idcardProducto){
+
+	if(data.parametrosFooter.productos.length > 0 && data.parametrosFooter.productos[0].valor != undefined){
+		valor = data.parametrosFooter.productos[0].valor;
+	}
+	amounts = calculaPrecioUF(valor, 1, realUF, data.parametrosFooter.productos[0].tipoMoneda);
+	$("#"+idcardProducto+" .card-productos-footer .UF").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(amounts.UF));
+	$("#"+idcardProducto+" .card-productos-footer .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad)));
+
+}
+
+function pintarAmountFooterCarPosTemporal(valor, data, amounts, realUF, idcardProducto){
+	
+	valor = parseFloat(data.parametrosFooter.productos[0].valor);
+	amounts = calculaPrecioUF(valor, 1, realUF, data.parametrosFooter.productos[0].tipoMoneda);	
+	$("#"+idcardProducto+" .card-productos-footer .UF").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(amounts.UF));
+	$("#"+idcardProducto+" .card-productos-footer .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad)));
+
+}
+
+function switchCaseCreaTuSitioWebPST(data, idcardProducto){
+	switch(data.codigoProducto) {
+	  case "CREA_TU_SITIO_WEB_CON_PST":		 
+		  $("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="ui-widget col-footer"><label class="select-label  roboto-regular font-12">Selecciona la empresa </label><select class="businessA"></select></div>');
+		  $("#"+idcardProducto+" .card-productos-footer div.row").append("<div class='col-footer'><p class='card-footer-txt roboto-medium font-14 text-right m-0' style='padding-left: 0px;'>"+data.descripcionFooter+"</p></div>");	
+		  		  
+		    $(".businessA").text("");
+		    
+		    $(".businessA").append('<option value="Seleccionar" selected>Seleccionar</option>');
+		    data.empresas.forEach( function(bussines, indice, array) {
+				let option = '<option value="'+bussines.companyName+'">'+bussines.companyName+'</option>';
+
+            $(".businessA").append(option);
+			});
+	    
+		    $( ".businessA" ).combobox();
+		      
+		    $( "#toggle" ).on( "click", function() {
+		        $( "#combobox" ).toggle();
+		      });
+	
+			break;
+	  
+	  default:
+			
+	  break;
+	}
+}
+
+function validaRangoDias(data, options, idcardProducto){
+	if(data.parametrosFooter.parametro.rangoDias != null && data.parametrosFooter.parametro.rangoCantidades != null){
+		/**options = '<option value="Seleccionar" selected>Seleccionar</option>';*/
+		data.parametrosFooter.parametro.rangoDias.forEach(function(item, index) {
+			options += '<option value="'+ item +'">'+ item + '</option>';
+		});
+		$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer" style="margin-top: 11px;"><label class="select-label  roboto-regular font-12">Cantidad días</label><select class="input-select roboto-regular font-14 rangoDias">'+ options +'</select><p class="select-info roboto-regular font-11">Desde 2 a 90 días</p></div>');
+		options = "";
+		data.parametrosFooter.parametro.rangoCantidades.forEach(function(item, index) {
+			options += '<option value="'+ item +'">'+ item + '</option>';
+		});
+		$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><label class="select-label  roboto-regular font-12">Cantidad equipos</label><select class="input-select  roboto-regular font-14 cantidad" name="cantidad">'+ options +'</select></div>');		
+		/**$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><span class="card-footer-txt roboto-medium font-14 row descripcionFooter">' + data.descripcionFooter.replace("%UF%",data.cantidadUf) + '</span><span class="card-footer-txt-light roboto-regular font-12 row"><span>($ <span class="amount">0</span> aproximado)</span></span></div>');*/		
+		$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><p class="card-footer-txt roboto-medium font-16 row"><span><span class="card-footer-txt-amount font-24">$<span class="amount">0</span> </span><span class="descripcionFooter">' + data.descripcionFooter + '</span></span></p><p class="card-footer-txt-medium roboto-regular font-12  leyendaIva">'+ data.leyendaIva +'</p><p class="card-footer-txt-light roboto-regular font-12 row"><span>Equivalente a: <span class="UF">'+ data.cantidadUf + '</span> UF + IVA</span></p></div>');		
+	}	
+}
+
+function validaPackPOS(data, options, idcardProducto){
+	if(data.parametrosFooter.parametro.tipoConexiones != null && data.parametrosFooter.parametro.rangoCantidades != null){
+		options = "";
+		if(data.codigoProducto == "PACK_POS"){
+			options = "";
+			data.parametrosFooter.parametro.rangoCantidades.forEach(function(item, index) {
+				options += '<option value="'+ item +'">'+ item + '</option>';
+			});
+			$("#"+idcardProducto+" .card-productos-footer").prepend('<p class="col-sm-12 roboto-regular caracteristicas-card-tbk" style="text-align:center;padding-bottom:32px;">Puedes agregar hasta<span class="roboto-bold"> 5 equipos en total</span></p>');
+			$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="ui-widget col-footer"><label class="select-label  roboto-regular font-12">Equipos fijos </label><select class="input-select  roboto-regular font-14 cantidadEF">'+ options +'</select></div>');
+			$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="ui-widget col-footer"><label class="select-label  roboto-regular font-12">Equipos inalámbricos </label><select class="input-select  roboto-regular font-14 cantidadEI">'+ options +'</select></div>');
+			/**$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><span class="card-footer-txt roboto-medium font-14 row">' + data.descripcionFooter.replace("%UF%",data.parametrosFooter.productos[0].valor + data.parametrosFooter.productos[1].valor) + '</span><span class="card-footer-txt-light roboto-regular font-12 row"><span>($ <span class="amount">0</span> aproximado)</span></span></div>');*/	
+			$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><p class="card-footer-txt roboto-medium font-16 row"><span><span class="card-footer-txt-amount font-24">$<span class="amount">0</span> </span><span class="descripcionFooter">' + data.descripcionFooter + '</span></span></p><p class="card-footer-txt-medium roboto-regular font-12 leyendaIva">'+ data.leyendaIva +'</p><p class="card-footer-txt-light roboto-regular font-12 row"><span>Equivalente a: <span class="UF">'+ data.parametrosFooter.productos[0].valor + data.parametrosFooter.productos[1].valor + '</span> UF + IVA</span></p></div>');		
+		}else{
+			
+			options = '<option value="Seleccionar" selected style="display:none;">Seleccionar</option>';
+			data.parametrosFooter.parametro.tipoConexiones.forEach(function(item, index) {
+				switch(item) {
+				  case "RED_INTERNET":
+					  options += '<option value="'+ item +'">Cable de internet (no WIFI)</option>';
+					  break;
+				  case "RED_CELULAR":
+					  options += '<option value="'+ item +'">Conexión vía chip 3G (incluído)</option>';
+					  break;  
+				  default:	
+					  options += '<option value="'+ item +'">' + item + '</option>';
+				  break;
+				  }
+			});
+			
+			$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="ui-widget col-footer"><label class="select-label  roboto-regular font-12">Tipo de conexión </label><select class="input-select input-select-big roboto-regular font-14 tipoConexion">'+ options +'</select></div>');
+			options = "";
+			data.parametrosFooter.parametro.rangoCantidades.forEach(function(item, index) {
+				options += '<option value="'+ item +'">'+ item + '</option>';
+			});
+			
+			$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="ui-widget col-footer"><label class="select-label  roboto-regular font-12">Cantidad equipos: </label><select class="input-select  roboto-regular font-14 cantidad">'+ options +'</select></div>');
+			/**$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><span class="card-footer-txt roboto-medium font-14 row descripcionFooter">' + data.descripcionFooter.replace("%UF%",data.cantidadUf) + '</span><span class="card-footer-txt-light roboto-regular font-12 row"><span>($ <span class="amount">0</span> aproximado)</span></span></div>');*/		
+		    $("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><p class="card-footer-txt roboto-medium font-16 row"><span><span class="card-footer-txt-amount font-24">$<span class="amount">0</span> </span><span class="descripcionFooter">' + data.descripcionFooter + '</span></span></p><p class="card-footer-txt-medium roboto-regular font-12  leyendaIva">'+ data.leyendaIva +'</p><p class="card-footer-txt-light roboto-regular font-12 row"><span>Equivalente a: <span class="UF">'+ data.cantidadUf + '</span> UF + IVA</span></p></div>');		
+		}	
+		
+	}
+}
+
+function validaSoloCantidadArticulos(data, options, idcardProducto){
+	if(data.parametrosFooter.parametro.rangoCantidades != null && data.parametrosFooter.parametro.tipoConexiones == null && data.parametrosFooter.parametro.rangoDias == null){
+		options = "";
+		data.parametrosFooter.parametro.rangoCantidades.forEach(function(item, index) {
+			options += '<option value="'+ item +'">'+ item + '</option>';
+		});
+		$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><label class="select-label  roboto-regular font-12" >Cantidad equipos</label><select class="input-select  roboto-regular font-14 cantidad" name="cantidad">'+ options +'</select></div>');		
+		/**$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer" ><span class="card-footer-txt roboto-medium font-14 row">' + data.descripcionFooter.replace("%UF%",data.cantidadUf) + '</span><span class="card-footer-txt-light roboto-regular font-12 row"><span>($ <span class="amount">0</span> aproximado)</span></span></div>');*/		
+		$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><p class="card-footer-txt roboto-medium font-16 row"><span><span class="card-footer-txt-amount font-24">$<span class="amount">0</span> </span><span class="descripcionFooter">' + data.descripcionFooter + '</span></span></p><p class="card-footer-txt-medium roboto-regular font-12  leyendaIva">'+ data.leyendaIva +'</p><p class="card-footer-txt-light roboto-regular font-12 row"><span>Equivalente a: <span class="UF">'+ data.cantidadUf + '</span> UF + IVA</span></p></div>');		
+	}
+}
+
+function validaQueNoTenganParametros(data, idcardProducto){
+	if (data.parametrosFooter.parametro.tipoConexiones == null && data.parametrosFooter.parametro.rangoDias == null && data.parametrosFooter.parametro.rangoCantidades == null && data.codigoProducto != "CREA_TU_SITIO_WEB_CON_PST") {
+    	var valor = '';
+    	var amounts = {};
+		if(data.codigoProducto == "INTEGRA_MEDIO_PAGO_CON_TRANSBANK" || data.codigoProducto == "CREA_TU_SITIO_WEB_CON_WIX"){
+			valor = data.parametrosFooter.productos[0].valor;
+			amounts = calculaPrecioUF(valor, 1, parseFloat(data.valorRealUf), data.parametrosFooter.productos[0].tipoMoneda);
+			$("#"+idcardProducto+" .card-productos-footer div.row").append('<div class="col-footer"><p class="card-footer-txt roboto-medium font-16 row"><span><span class="card-footer-txt-amount font-24">$<span class="amount">' + new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad)) + '</span> </span><span class="descripcionFooter">' + data.descripcionFooter + '</span></span></p><p class="card-footer-txt-medium font-12  leyendaIva">'+ data.leyendaIva +'</p><p class="card-footer-txt-light roboto-regular font-12 row"><span>Equivalente a: <span class="UF">'+ new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(amounts.UF) + '</span> UF + IVA</span></p></div>');			
+		}else{
+			$("#" + idcardProducto + " .card-productos-footer div.row").append("<span class='col-sm-12 card-footer-txt roboto-medium font-14 text-right m-0'><span>" + data.descripcionFooter + "</span></span>");
+		}
+    }
+}
+function calculaAmount(thisSelect){
+		var data = $(thisSelect).parents(".card-productos-footer").find("button").attr("data");
+		data = JSON.parse(data); 
+		var cantidadEquipos = $(thisSelect).parents(".card-productos-footer").find(".cantidad").val();
+		var tipoConexion = $(thisSelect).parents(".card-productos-footer").find(".tipoConexion").val();
+		var rangoDias = $(thisSelect).parents(".card-productos-footer").find(".rangoDias").val();
+		var cantidadEI = $(thisSelect).parents(".card-productos-footer").find(".cantidadEI").val();
+		var cantidadEF = $(thisSelect).parents(".card-productos-footer").find(".cantidadEF").val();
+		var realUF = parseFloat(data.valorRealUf);
+		let idcardProducto = normalizarTexto(data.titulo);
+		var amounts = "";
+		var valor='';
+		
+		/**Calculo para cuando hay tipo de conexiones*/
+		calculoParaTipoConexiones(data, cantidadEquipos, amounts, valor, cantidadEF, cantidadEI, realUF, idcardProducto, tipoConexion);
+		
+		/**Calculo para arriendo por dias*/
+		calculoParaArriendoPorDias(data, rangoDias, idcardProducto, valor, amounts, cantidadEquipos, realUF);
+		
+		/**Calculo para cantidades nada más*/
+		calculoSoloParaCantidades(data, valor, amounts, cantidadEquipos, realUF, idcardProducto);
+}
+
+function calculoParaTipoConexiones(data, cantidadEquipos, amounts, valor, cantidadEF, cantidadEI, realUF, idcardProducto, tipoConexion){
+	if(data.parametrosFooter.parametro.tipoConexiones != null && data.parametrosFooter.parametro.rangoCantidades != null){
+		/**excepción para PACK_POS*/
+		if(data.codigoProducto == "PACK_POS"){
+			var UF='';
+			var cantidad ='';
+			var amountsEF = {};
+			var amountsEI = {};
+			if(data.parametrosFooter.productos.length > 1 && data.parametrosFooter.productos[0].valor != undefined && data.parametrosFooter.productos[1].valor != undefined){
+				var conexionFija = data.parametrosFooter.productos.find(element => element.tipoConexion === "RED_INTERNET");
+				amountsEF = calculaPrecioUF(conexionFija.valor, cantidadEF, realUF, conexionFija.tipoMoneda);
+				
+				var conexionInalambrica = data.parametrosFooter.productos.find(element => element.tipoConexion === "RED_CELULAR");
+				amountsEI = calculaPrecioUF(conexionInalambrica.valor, cantidadEI, realUF, conexionInalambrica.tipoMoneda);
+			}
+			UF = parseFloat(amountsEF.UF) + parseFloat(amountsEI.UF);
+			cantidad = parseFloat(amountsEF.cantidad) + parseFloat(amountsEI.cantidad);
+			cantidadEquipos = parseFloat(cantidadEF) + parseFloat(cantidadEI);
+			if(cantidadEquipos < 6){
+				$("#"+idcardProducto+" .card-productos-footer .UF").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(UF));
+				$("#"+idcardProducto+" .card-productos-footer .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(cantidad)));
+				$("#"+idcardProducto+" .card-productos-footer .selectProduct").prop("disabled",false);
+			}else{
+				$("#"+idcardProducto+" .card-productos-footer .selectProduct").prop("disabled",true);
+			}	
+		}else{
+			if(tipoConexion == null || tipoConexion  == undefined || tipoConexion  == "Seleccionar"){
+				$("#"+idcardProducto+" .card-productos-footer .selectProduct").prop("disabled",true);
+			}else{
+				var conexionSelect = data.parametrosFooter.productos.find(element => element.tipoConexion === tipoConexion);
+				valor = conexionSelect.valor;
+				amounts = calculaPrecioUF(valor, cantidadEquipos, realUF, conexionSelect.tipoMoneda)
+				$("#"+idcardProducto+" .card-productos-footer .UF").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(amounts.UF));
+				$("#"+idcardProducto+" .card-productos-footer .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad)));
+				$("#"+idcardProducto+" .card-productos-footer .selectProduct").prop("disabled",false);
+			}	
+		}
+	}
+}
+
+function calculoParaArriendoPorDias(data, rangoDias, idcardProducto, valor, amounts, cantidadEquipos, realUF){
+	if(data.parametrosFooter.parametro.rangoDias != null){
+		if(rangoDias == null || rangoDias == undefined || rangoDias  == "Seleccionar"){	
+			$("#"+idcardProducto+" .card-productos-footer .selectProduct").prop("disabled",true);
+		}else{
+			if(rangoDias <=20 ){
+				valor = parseFloat(data.parametrosFooter.productos[0].valor);
+				amounts = calculaPrecioUF(valor, cantidadEquipos, realUF, data.parametrosFooter.productos[0].tipoMoneda)
+			}else if(rangoDias >20){
+				valor = data.parametrosFooter.productos[1].valor;
+				amounts = calculaPrecioUF(valor, cantidadEquipos, realUF, data.parametrosFooter.productos[1].tipoMoneda);
+			}
+			$("#"+idcardProducto+" .card-productos-footer .UF").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(amounts.UF));
+			$("#"+idcardProducto+" .card-productos-footer .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad)));
+			$("#"+idcardProducto+" .card-productos-footer .selectProduct").prop("disabled",false);
+		}
+	}
+}
+
+function calculoSoloParaCantidades(data, valor, amounts, cantidadEquipos, realUF, idcardProducto){
+	if(data.parametrosFooter.parametro.rangoCantidades != null && data.parametrosFooter.parametro.tipoConexiones == null && data.parametrosFooter.parametro.rangoDias == null){
+		if(data.parametrosFooter.productos.length > 0 && data.parametrosFooter.productos[0].valor != undefined){
+				valor = data.parametrosFooter.productos[0].valor;
+		}
+			amounts = calculaPrecioUF(valor, cantidadEquipos, realUF, data.parametrosFooter.productos[0].tipoMoneda);
+			$("#"+idcardProducto+" .card-productos-footer .UF").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(amounts.UF));
+			$("#"+idcardProducto+" .card-productos-footer .amount").text(new Intl.NumberFormat('de-DE', { currency: 'EUR' }).format(Math.ceil(amounts.cantidad)));
+			$("#"+idcardProducto+" .card-productos-footer .selectProduct").prop("disabled",false)
+	}
+}
+
+function calculaPrecioUF(valorProduct, cantidadEquipos, realUF, tipoMoneda){
+	var UF = 0;
+	var cantidad = 0;
+	if(tipoMoneda == "PESO"){
+		//UF = valorProduct/(realUF * 1.19);
+		UF = (valorProduct * parseFloat(cantidadEquipos))/(realUF * configIva) ;
+		cantidad = valorProduct * parseFloat(cantidadEquipos);
+	}else{
+		//UF = valorProduct;
+		UF = valorProduct * parseFloat(cantidadEquipos);
+		cantidad = valorProduct * realUF * configIva * parseFloat(cantidadEquipos);
+	}
+	return{
+		UF: UF.toFixed(2),
+		cantidad: cantidad.toFixed(2)
+	};
+}
+function customizeSelects(select){
+	var selectClass = $(select).attr("class");
+	/**var selectLabel = $(select).prev().text();*/
+	$(select).hide();
+	var htmlSelect
+	var selectVal =  $(select).val();
+	var options = $(select).find("option");
+
+	if($(select).hasClass("tipoConexion")){
+		htmlSelect = '<div class="' + selectClass + '"><span class="value-select">' + selectVal + '</span><i class="icon-menu-up rotate-down" style="transform: rotate(180deg);"></i></div><ul class="ul-options ul-options-big" style="display: none;">';
+	}else{
+		htmlSelect = '<div class="' + selectClass + '"><span class="value-select">' + selectVal + '</span><i class="icon-menu-up rotate-down" style="transform: rotate(180deg);"></i></div><ul class="ul-options" style="display: none;">';
+	}
+
+	options.each(function(index,option){
+		if($(option).attr("value") != "Seleccionar"){
+			htmlSelect += '<li  class="li-option roboto-regular font-14" value=' + $(option).attr("value") + '>' + $(option).text() + '</li>';
+		}
+	});
+	htmlSelect += '</ul>';
+  
+	$(select).after(htmlSelect);
+}
+
+function validaEmpresa(thisSelect){
+	var data = JSON.parse($(thisSelect).parents(".card-productos-footer").find("button").attr("data"));
+	var empresa = $(thisSelect).val();
+	if(empresa == null || empresa == undefined || empresa == "Seleccionar"){
+		$(thisSelect).parents(".card-productos-footer").find("button").prop("disabled",true);
+	}else{
+		var empresaSelect = data.empresas.find(element => element.companyName === empresa);
+		if(empresaSelect != undefined){
+			$(thisSelect).parents(".card-productos-footer").find("button").prop("disabled",false);
+		}else{
+			$(thisSelect).parents(".card-productos-footer").find("button").prop("disabled",true);
+		}
+	}
+}
+
+/**Despliega selects de las cards*/
+
+$("#card-body-onboarding").on("click",".card-productos-footer .input-select .icon-menu-up", function () {
+	event.preventDefault(); 
+	var thisOptions = $(this).parents(".col-footer").find("ul.ul-options");
+	if($(thisOptions).is(":visible")){
+		$(this).parents(".input-select").removeClass("active");
+		$(this).removeClass("rotate-up").addClass("rotate-down");
+		$(this).css("transform","rotate(180deg)");
+		$(thisOptions).hide();
+	}else{
+		$("div.input-select").removeClass("active");
+		$(".icon-menu-up").removeClass("rotate-up").addClass("rotate-down");
+		$(".icon-menu-up").css("transform","rotate(180deg)");
+		$("ul.ul-options").hide();
+		$(this).parents(".input-select").addClass("active");
+		$(this).removeClass("rotate-down").addClass("rotate-up");
+		$(this).css("transform","rotate(0deg)");
+		$(thisOptions).show();
+	}
+});
+
+/**Seleccionar opciones de selects de las cards*/
+
+$("#card-body-onboarding").on("click",".ul-options .li-option", function () {
+	var thisSection = $(this).parents(".col-footer");
+	var value = $(this).attr("value");
+	var text = $(this).text();
+	$(thisSection).find("select.input-select").val(value);
+	$(thisSection).find("div.input-select .value-select").text(text);
+	$(thisSection).find("div.input-select").removeClass("active");
+	$(thisSection).find(".icon-menu-up").removeClass("rotate-up").addClass("rotate-down");
+	$(thisSection).find(".icon-menu-up").css("transform","rotate(180deg)");
+	$(thisSection).find("ul.ul-options").hide();
+	calculaAmount($(thisSection).find("select.input-select"));
+});
+
+
+$("#card-body-onboarding").on("change keyup keydown paste click input","input.businessA", function(){
+	validaEmpresa(this);
+});
+
+$("#card-body-onboarding").on("click","input.businessA + a.icon-menu-up", function(){
+	/**ocultar opcion seleccionar*/
+    if($(".ui-menu-item:first-child .ui-menu-item-wrapper").text() == "Seleccionar"){
+    	$(".ui-menu-item:first-child").hide();
+    }
+	if($(".ui-menu").is(":visible")){
+		$("input.businessA").addClass("active");
+		$("input.businessA + a.icon-menu-up").addClass("rotate-up").removeClass("rotate-down");
+		$("input.businessA + a.icon-menu-up").css("transform","rotate(0deg)");
+	}else{
+		$("input.businessA").removeClass("active");
+		$("input.businessA + a.icon-menu-up").removeClass("rotate-up").addClass("rotate-down");
+		$("input.businessA + a.icon-menu-up").css("transform","rotate(180deg)");
+	}
+});
+
+$("body").on("click",".ui-menu .ui-menu-item .ui-menu-item-wrapper", function(){
+	validaEmpresa("input.businessA");
+	$("input.businessA").removeClass("active");
+	$("input.businessA + a.icon-menu-up").removeClass("rotate-up").addClass("rotate-down");
+	$("input.businessA + a.icon-menu-up").css("transform","rotate(180deg)");
+})
+
+function normalizarTexto(texto){
+	return texto.toLowerCase().trim().normalize('NFKD').replace(/[^\w]/g, '');
+}

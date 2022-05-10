@@ -1,0 +1,116 @@
+function procesarCategoria(namespace, indice, listArticle, url) {
+	
+	AUI().use("aui-io-request", function(A) {
+
+		let parameters = {};
+		parameters[`${namespace}indice`] = indice;
+		parameters[`${namespace}listArticle`] = listArticle;
+		
+		
+		var filtro = ""
+		if(filtroActivo){
+			parameters[`${namespace}filtro`] = tipoFiltro;
+			filtro = tipoFiltro;
+		}else{
+			parameters[`${namespace}filtro`] = "";
+		}
+		
+				
+		A.io.request(url, {
+			method : 'post',
+			data : parameters,
+			cache : false,
+			on : {
+				success : function() {
+					let responseDataJson = JSON.parse(this.get('responseData'));
+					
+					
+					
+					$("#card-body-onboarding").empty();
+					var categorias = $(".carousel .wgt-category-body"); 
+					
+					
+					responseDataJson.registros.forEach(function(data){
+						/*pintar card producto*/
+						if(filtroActivo){
+							data.categorias.forEach( function(categoria, indice, array) {
+								
+								var exist= listaCategoriasFiltro.find(element => element == categoria);
+								
+								if(exist == undefined){
+									listaCategoriasFiltro.push(categoria);
+								}
+								
+							});
+						}
+						
+						pintarBodyCard(data, namespace);
+					});
+					
+					
+					
+					if(filtroActivo){
+						categorias.each( function(indice, categoria) {
+							
+							var exist= listaCategoriasFiltro.find(element => element == categoria.outerText.replace(/^\s*|\s*$/g,""));
+							
+							if((exist == undefined && indice > 0) && categoria.outerText.replace(/^\s*|\s*$/g,"") != "Ver todos los productos"){
+							/**	$(categoria).parents("button").attr("style","display: none !important;");*/
+								$(categoria).parents("button").attr("style","opacity: 20% !important; border: solid 1px rgba(210, 214, 217, 0.4); border-color: grey;");
+								$(categoria).parents("button").addClass("opacados");
+								$(categoria).parents("button").prop("disabled",true);
+							}
+							
+						});
+					}else{ 
+						categorias.each( function(indice, categoria) {
+						/**	$(categoria).parents("button").attr("style","display: flex !important;");*/
+							$(categoria).parents("button").attr("style","");
+							$(categoria).parents("button").removeClass("opacados");
+							$(categoria).parents("button").prop("disabled",false);
+						});
+					}
+					
+					
+					
+					
+					/* pintar paginador */
+					pintarPaginador(responseDataJson, namespace, listArticle, url);
+					
+				},
+				failure : function() {
+
+				}
+			}
+		});
+	});
+
+}
+
+function procesarModal(namespace, articleId, url) {
+	
+	AUI().use("aui-io-request", function(A) {
+
+		let parameters = {};
+		parameters[`${namespace}articleId`] = articleId;
+				
+		A.io.request(url, {
+			method : 'post',
+			data : parameters,
+			cache : false,
+			on : {
+				success : function() {
+					
+					let data = JSON.parse(this.get('responseData'));
+					
+						abrirModalCardProducto(data);
+					
+				},
+				failure : function() {
+
+				}
+			}
+		});
+	});
+
+}

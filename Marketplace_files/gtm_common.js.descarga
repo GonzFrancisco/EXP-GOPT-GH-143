@@ -1,0 +1,498 @@
+"use strict";
+
+function GenerarTagBotonHeader(nombreBoton) {
+    if (showTagManager) {
+        try {
+            window.dataLayer.push({
+                'event': 'button',
+                'header': nombreBoton
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
+function GenerarTagBotonBuscador(search_term, autocomplete) {
+    if (showTagManager) {
+        try {
+            window.dataLayer.push({
+                'event': 'search',
+                'search_term': search_term,
+                'autocomplete': autocomplete
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
+function GenerarTagSeccion(nombreSeccion) {
+    if (showTagManager) {
+        try {
+            window.dataLayer.push({
+                'event': 'button',
+                'category': nombreSeccion
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
+
+function GenerarTagPreguntaMasFrecuente(tituloPregunta) {
+    if (showTagManager) {
+        try {
+            window.dataLayer.push({
+                'event': 'button',
+                'article': tituloPregunta
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
+function GenerarTagFeedback(feedback) {
+    if (showTagManager) {
+        try {
+            window.dataLayer.push({
+                'event': 'feedback',
+                'category': getCategoriaMenuNavegacion(),
+                'rate': feedback
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
+function getCategoriaMenuNavegacion(){
+	var arrayA = [];
+    var menuNavegacion = $("#menu-navegacion").text().replace("Centro de Ayuda","");
+    var arrayB = menuNavegacion.split("/");
+    for(var i = 0;i<arrayB.length;i++){
+
+    	if(arrayB[i].trim() != ""){
+    	arrayA.push(arrayB[i].trim())    	
+    	}
+    }
+    return arrayA.join("/");
+}
+
+function GenerarTagFeedbackOpciones() {
+    if (showTagManager) {
+        try {
+            let opcion = $("input:radio[name=feedback-opcion]:checked").val();
+     /** opcion = opcion.substr(19); */
+            let opcionGTM = opcion.replace(/[.]/g, ' ');
+            opcionGTM = opcionGTM ? opcionGTM : "";
+
+            let comentario = $("#feedback-motivo").val();
+            comentario = comentario.substr(0, 150);
+            comentario = comentario ? comentario : "";
+            
+            if(opcion != "Otra opción"){
+            	window.dataLayer.push({
+                    'event': 'feedback',
+                    'category': getCategoriaMenuNavegacion(),
+                    'rate': 'no',
+                    'review': opcion
+                });
+            }else{
+            	window.dataLayer.push({
+                    'event': 'feedback',
+                    'category': getCategoriaMenuNavegacion(),
+                    'rate': 'no',
+                    'review': opcion,
+                    'comment': comentario
+                });
+            }
+            
+            
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
+/** Tag footer cards */
+
+function GenerarTagBotonFooterCards(nombreProducto) {
+    if (showTagManager) {
+        try {
+            window.dataLayer.push({
+                'event': 'evento-interactivo',
+                'evento-interactivo-categoria': 'Market Place',
+                'evento-interactivo-accion': 'click',
+                'evento-interactivo-etiqueta': nombreProducto
+                
+            });
+        } catch (e) {
+            console.error(e);
+        }
+    }
+}
+
+function GenerarTagRetomarContratacion() {
+    if (showTagManager) {
+        try {
+            window.dataLayer.push({
+                'event': 'evento-interactivo',
+                'evento-interactivo-categoria': 'Market Place',
+                'evento-interactivo-accion': 'click',
+                'evento-interactivo-etiqueta': 'Retomar contratación'
+                
+            });
+        } catch (e) {	
+            console.error(e);
+        }
+    }
+}
+
+function GenerarTagFiltroCarrusel(nombreFiltro){
+	 if (showTagManager) {
+	        try {
+	            window.dataLayer.push({
+	                'event': 'evento-interactivo',
+	                'evento-interactivo-categoria': 'Market Place',
+	                'evento-interactivo-accion': 'filtro',
+	                'evento-interactivo-etiqueta': nombreFiltro
+	                
+	            });
+	        } catch (e) {	
+	            console.error(e);
+	        }
+	    }
+}
+
+function impresionesProductosGTM(productosPorPagina){
+	
+	var nameProduct = '';
+	var categoryProduct ='';
+	var listFiltro = obtenerDataLista();
+	var positionProduct = '';
+	var numeroPagina = productosPorPagina.numeroPagina;
+	var arrayImpresiones = [];
+	var idNormalizado = '';
+	var unitPrice = 0;
+	if (showTagManager) {
+        try {
+        	productosPorPagina.registros.forEach(function(data, index){ 		
+        		
+        		nameProduct = data.titulo;
+        		positionProduct = index+1;
+        		idNormalizado = normalizarTexto(data.titulo);
+        		
+        		if($("#"+idNormalizado).find(".amount").text() != "" && $("#"+idNormalizado).find(".amount").text() !="0" && $("#"+idNormalizado).find(".cantidad").text() != ""){
+        			unitPrice = (parseFloat($("#"+idNormalizado).find(".amount").text().replace(/\./g,''))/parseFloat($("#"+idNormalizado).find("div.cantidad").text()));
+        		} else if($("#"+idNormalizado).find(".amount").text() != "" && $("#"+idNormalizado).find(".amount").text() !="0"){
+        			unitPrice = parseFloat($("#"+idNormalizado).find(".amount").text().replace(/\./g,''));
+        		} else{
+        			unitPrice = 0;
+        		}
+        		
+        		if(data.etiquetaVenta){
+        			categoryProduct = 'Venta';
+        		}else{
+        			categoryProduct = 'Arriendo';
+        		}
+        		
+        		arrayImpresiones.push({ name:  nameProduct , id: data.codigoProducto, price: unitPrice, category: categoryProduct, list: listFiltro, position: positionProduct, list_position: numeroPagina }); 				
+        	});
+        	dataLayer.push({ ecommerce: null });
+        	window.dataLayer.push({
+            	event: 'Impresiones-producto',
+            	ecommerce: {
+            		impressions: arrayImpresiones
+            	}
+            });
+            
+        } catch (e) {	
+            console.error(e);
+        }
+    }
+}
+
+function vistaDetalleProductoGTM(data){
+	
+	var nameProduct = '';
+	var categoryProduct ='';
+	var lista = obtenerDataLista();
+	var idNormalizado = '';
+	var unitPrice = 0;
+	if (showTagManager) {
+        try {
+        	
+        	nameProduct = data.titulo;
+        	idNormalizado = normalizarTexto(data.titulo);
+    		
+    		if($("#"+idNormalizado).find(".amount").text() != "" && $("#"+idNormalizado).find(".amount").text() !="0" && $("#"+idNormalizado).find(".cantidad").text() !="0"){
+    			unitPrice = (parseFloat($("#"+idNormalizado).find(".amount").text().replace(/\./g,''))/parseFloat($("#"+idNormalizado).find("div.cantidad").text()));
+    		} else if($("#"+idNormalizado).find(".amount").text() != "" && $("#"+idNormalizado).find(".amount").text() !="0"){
+    			unitPrice = parseFloat($("#"+idNormalizado).find(".amount").text().replace(/\./g,''));
+    		}else{
+    			unitPrice = 0;
+    		}
+    		
+    		
+    		if(data.etiquetaVenta){
+    			categoryProduct = 'Venta';
+    		}else{
+    			categoryProduct = 'Arriendo';
+    		}
+    		dataLayer.push({ ecommerce: null });
+        	window.dataLayer.push({
+        		 event: 'detalle-producto',
+        		 ecommerce: {
+        			 detail: {
+        				 actionField: {
+        					 list: lista
+        				 },
+        				 products: [{name: nameProduct, id: data.codigoProducto, price: Math.round(unitPrice), category: categoryProduct}]
+        			 }
+        		 }
+            }); 
+        } catch (e) {	
+            console.error(e);
+        }
+    }
+}
+
+function agregarProductosGTM(trolley){
+	
+	var nameProduct = '';
+	var categoryProduct ='';
+	var listFiltro = obtenerDataLista();
+	var variant = 'default';
+	var productQuantity = 1;
+	var idProduct = '';
+	var unitPrice = 0;
+	
+	if (showTagManager) {
+        try {        		
+        	nameProduct = trolley.productos[0].title;
+        	idProduct = trolley.productos[0].codigoProducto;
+        	if(trolley.productos[0].amount != null && trolley.productos[0].amount != "" && trolley.productos[0].cantidad != null){
+        		unitPrice = (parseFloat(trolley.productos[0].amount.replace(/\./g,'')) / parseFloat(trolley.productos[0].cantidad));
+        		
+        	} else if(trolley.productos[0].amount != null && trolley.productos[0].amount != "" && trolley.productos[0].cantidad == null){
+        		unitPrice = parseFloat(trolley.productos[0].amount.replace(/\./g,''));
+        		
+        	}      	
+        	
+        	categoryProduct = getCategoryProduct(trolley);
+        	dataLayer.push({ ecommerce: null });
+        	if(trolley.productos[0].codigoProducto == "PACK_POS"){
+
+        		window.dataLayer.push({
+                	event: 'agregar-carro',
+                	ecommerce: {
+                		add: {
+                			actionField:{
+                				list: listFiltro
+                			},
+                			products: [{ name: 'Pos fijo' , id: idProduct, price: unitPrice, category: categoryProduct, variant: 'pack pos' ,  quantity: parseFloat(trolley.productos[0].cantidadF) },
+              				  { name: 'Pos móvil' , id: idProduct, price: unitPrice, category: categoryProduct , variant: 'pack pos' ,  quantity: parseFloat(trolley.productos[0].cantidadI)}]
+                		}
+                	}
+                });
+        	}else{
+        		
+        		variant = getVariant(trolley);
+        		productQuantity = getQuantity(trolley);
+            	            	  	
+            	window.dataLayer.push({
+                	event: 'agregar-carro',
+                	ecommerce: {
+                		add: {
+                			actionField:{
+                				list: listFiltro
+                			},
+                			products: [{ name: nameProduct, id: idProduct, price: Math.round(unitPrice), category: categoryProduct , variant: variant ,  quantity: parseFloat(productQuantity) }]
+                		}
+                	}
+                });
+        	}
+ 
+        } catch (e) {	
+            console.error(e);
+        }
+    }
+}
+
+function solicitarProductosGTM(trolley){
+	
+	var nameProduct = '';
+	var categoryProduct ='';
+	var list = obtenerDataLista();
+	var variant = 'default';
+	var productQuantity = 1;
+	var idProduct = '';
+	var unitPrice = 0;
+	
+	if (showTagManager) {
+        try {        		
+        	nameProduct = trolley.productos[0].title;
+        	idProduct = trolley.productos[0].codigoProducto;
+        	
+        	if(trolley.productos[0].amount != null && trolley.productos[0].amount != "" && trolley.productos[0].cantidad != null){
+        		unitPrice = (parseFloat(trolley.productos[0].amount.replace(/\./g,'')) / parseFloat(trolley.productos[0].cantidad));
+        	}else if(producto.amount != null && producto.cantidad == null){
+        		unitPrice = parseFloat(producto.amount.replace(/\./g,''));
+        	}
+        	
+        	categoryProduct = getCategoryProduct(trolley);
+        	dataLayer.push({ ecommerce: null });
+        	if(trolley.productos[0].codigoProducto == "PACK_POS"){
+
+        		window.dataLayer.push({
+        			event: 'proceso-contratacion',
+        			ecommerce: {
+        				checkout: {
+                			actionField:{
+                				step: 1,
+        						option: 'Solicitar productos'
+                			},
+                			products: [{ name: 'Pos fijo' , id: idProduct, price: unitPrice, category: categoryProduct, variant: 'pack pos' ,  quantity: parseFloat(trolley.productos[0].cantidadF) },
+              				  { name: 'Pos móvil' , id: idProduct, price: unitPrice, category: categoryProduct , variant: 'pack pos' ,  quantity: parseFloat(trolley.productos[0].cantidadI)}]
+                		}
+                	}
+                });
+        	}else{
+
+        		variant = getVariant(trolley);
+        		productQuantity = getQuantity(trolley);
+        		
+            	window.dataLayer.push({
+            		event: 'proceso-contratacion',
+        			ecommerce: {
+        				checkout: {
+        					actionField: {
+        						step: 1,
+        						option: 'Solicitar productos'
+        					},
+        					products: [{ name: nameProduct, id: idProduct, price: Math.round(unitPrice), category: categoryProduct , variant: variant ,  quantity: parseFloat(productQuantity) }]
+        				}
+                	}
+                });
+        	}
+ 
+        } catch (e) {	
+            console.error(e);
+        }
+    }
+}
+
+function eliminarProductoGTM(producto){
+	console.log(producto);
+	var categoria = '';
+	var variantSelect = 'default';
+	var unitPrice = 0;
+	var cantidadProduto = 1;
+	
+	if(producto.etiquetaVenta){
+		categoria = 'Venta';
+	}else{
+		categoria = 'Arriendo';
+	}
+	if(producto.amount != null && producto.cantidad != null){
+		unitPrice = (parseFloat(producto.amount.replace(/\./g,'')) / parseFloat(producto.cantidad));
+		cantidadProduto = parseFloat(producto.cantidad);
+	}else if(producto.amount != null && producto.cantidad == null){
+		unitPrice = parseFloat(producto.amount.replace(/\./g,''));
+	}
+	
+	variantSelect = getVariantDelete(producto);
+	
+	if (showTagManager) {
+        try {
+        	dataLayer.push({ ecommerce: null });
+        	if(producto.codigoProducto == "PACK_POS"){
+
+        		window.dataLayer.push({
+        			event: 'remover-carro',
+        			ecommerce: {
+        				remove: {
+                			actionField:{
+                				list: producto.filtroActivo
+                			},
+                			products: [{ name: 'Pos fijo' , id: producto.codigoProducto, price: unitPrice, category: categoria, variant: 'pack pos' ,  quantity: parseFloat(producto.cantidadF) },
+              				  { name: 'Pos móvil' , id: producto.codigoProducto, price: unitPrice, category: categoria , variant: 'pack pos' ,  quantity: parseFloat(producto.cantidadI)}]
+                		}
+                	}
+                });
+        	}else{
+        	window.dataLayer.push({
+        		event: 'remover-carro',
+        		ecommerce: {
+        			remove: {
+        				actionField: {					
+        					list: producto.filtroActivo
+        				},
+        				products: [{ name: producto.title, id: producto.codigoProducto, price: Math.round(unitPrice), category: categoria , variant: variantSelect ,  quantity: cantidadProduto }]
+        			}
+            	}
+            });
+          }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+	
+	
+	
+}
+
+function getVariantDelete(productos){
+	var variante= 'default';
+	if(productos.tipoConexiones != null && productos.tipoConexiones != undefined){
+		variante = productos.tipoConexion;
+	}else if(productos.cantidadDias != null && productos.cantidadDias != undefined){
+		variante = productos.cantidadDias;
+	}else if(productos.business != null && productos.business != undefined){
+		variante = productos.business.companyName;
+	}
+	return variante;
+}
+
+function getVariant(trolley){
+	var variante= 'default';
+	if(trolley.productos[0].tipoConexiones != null && trolley.productos[0].tipoConexiones != undefined){
+		variante = trolley.productos[0].tipoConexion;
+	}else if(trolley.productos[0].cantidadDias != null && trolley.productos[0].cantidadDias != undefined){
+		variante = trolley.productos[0].cantidadDias;
+	}else if(trolley.productos[0].business != null && trolley.productos[0].business != undefined){
+		variante = trolley.productos[0].business.companyName;
+	}
+	return variante;
+}
+
+function getQuantity(trolley){
+	var cantidad= 1;
+	if(trolley.productos[0].cantidad != null && trolley.productos[0].cantidad != undefined){
+		cantidad = trolley.productos[0].cantidad;
+	}
+	return cantidad;
+}
+
+function getCategoryProduct(trolley){
+	var categoria = '';
+	if(trolley.productos[0].etiquetaVenta){
+		categoria = 'Venta';
+	}else{
+		categoria = 'Arriendo';
+	}
+	
+	return categoria;
+}
+
+function obtenerDataLista (){
+	var listFiltro = $("#carouselExampleControls .wgt-category-filter-active").text().trim();
+	if(listFiltro.length < 1){
+		listFiltro = $("#carouselExampleControlsMobile .wgt-category-filter-active").text().trim(); 
+	}
+	
+	return listFiltro;
+}

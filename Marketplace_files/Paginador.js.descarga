@@ -1,0 +1,33 @@
+function pintarPaginador(responseDataJson, namespace, listArticle, url){
+	
+	$("#paginador-onboarding > ul").empty();
+	$("#paginador-onboarding").css("display", "block");
+	if(responseDataJson.numeroPagina != 1){
+		let prevPage = responseDataJson.numeroPagina-1;
+		$("#paginador-onboarding > ul").append('<li><a class="roboto-bold font-16" onclick="procesarPaginador(\''+namespace+'\', \''+prevPage+'\', \''+JSON.stringify(listArticle)+'\', \''+url+'\')"><button class="btn-page-tbk"> < </button></a></li>');
+	}else{
+		$("#paginador-onboarding > ul").append('<li><a class="roboto-bold font-16" tabindex="-1" aria-disabled="true"><button class="btn-page-tbk" disabled> < </button></a></li>');
+	}
+	
+	for (i = 1; i <= responseDataJson.totalPaginas; i++) {
+		if(responseDataJson.numeroPagina == i){
+			 $("#paginador-onboarding > ul").append('<li><a class="roboto-bold font-16" onclick="procesarPaginador(\''+namespace+'\', \''+i+'\', \''+JSON.stringify(listArticle)+'\', \''+url+'\')"><button class="btn-page-tbk active">'+i+'</button></a></li>');	
+		}else{
+		    $("#paginador-onboarding > ul").append('<li><a class="roboto-bold font-16" onclick="procesarPaginador(\''+namespace+'\', \''+i+'\', \''+JSON.stringify(listArticle)+'\', \''+url+'\')"><button class="btn-page-tbk"> '+i+' </button></a></li>');
+
+		}
+	}
+	
+	if(responseDataJson.numeroPagina != responseDataJson.totalPaginas){
+		let nextPage = responseDataJson.numeroPagina+1;
+		$("#paginador-onboarding > ul").append('<li><a class="roboto-bold font-16" onclick="procesarPaginador(\''+namespace+'\', \''+nextPage+'\', \''+JSON.stringify(listArticle)+'\', \''+url+'\')"><button class="btn-page-tbk"> > </button></a></li>');
+	}else{
+		$("#paginador-onboarding > ul").append('<li><a class="roboto-bold font-16" tabindex="-1" aria-disabled="true"><button class="btn-page-tbk" disabled> > </button></a></li>');						
+	}
+	
+	impresionesProductosGTM(responseDataJson);
+}
+
+function procesarPaginador(namespace, indice, listArticle, url) {
+	procesarCategoria(namespace, indice, JSON.parse(listArticle), url);
+}

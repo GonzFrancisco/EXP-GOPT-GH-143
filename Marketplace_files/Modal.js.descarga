@@ -1,0 +1,103 @@
+function abrirModalCardProducto(data){	
+ switch(data.codigoProducto) {
+	case "CREA_TU_SITIO_WEB_CON_PST":	
+		/**crea modal de empresas*/
+	crearModal(data);	
+	break;
+	
+	default:
+	/**crea body modal default*/
+	crearModalDefault(data);
+	/**crear logica por titulo*/
+	switch(data.codigoProducto) {
+	case "COBRO_QR":
+		$("#modalCardBody .container .row").append("<div class='context col-md-12 dis-flex align-items-center'><div class='col-12 col-md-12'> <p class='title-celeste roboto-bold font-24 ml-4'>"+data.descripcionCostoArriendoModal+"</p></div></div>");
+	break;
+	
+	default:
+		$("#modalCardBody .container .row").append("<div class='context col-md-12 dis-flex align-items-center'><div class='col-12 col-md-7'><p class='title-celeste roboto-bold font-24 ml-4'>"+data.descripcionCostoArriendoModal+"</p></div><div class='border-line col-12 col-md-5' style='line-height: 0.5;'><div class='d-flex'><p class='roboto-medium font-48 title-celeste'> </p></div><p class='roboto-medium' style='color:#828EA5 !important; font-size:16px;'>"+data.descripcionTarifaReferencialModal+"</p><p class='roboto-regular' style='font-size:12px; color:#828EA5; line-height: 1; margin: 0;'>"+data.equivalenteEnDinero+"</p></div></div>");/**+data.cantidadUfModal+*/
+	break;
+	}
+	/**pinta card footer*/
+	
+	$("#modalCardFooter").empty();
+	$("#modalCardFooter").append("<div class='container'><div class='row align-items-center'></div></div>");
+//	$("#modalCardFooter .container .row").append("<div class='col-md-12 mrg-top-footer'><a class='text-decoration-none' href='"+data.urlExterna+"'><button class='btn-primary-tbk'>Solicitar</button></a></div>");
+	$("#modalCardFooter .container .row").append("<div class='col-md-12 mrg-top-footer'><button type='button' class='btn-secondary-tbk' data-dismiss='modal' aria-label='Close' onclick='cerrarModalCardProducto()'>Volver</button></div>");
+	
+	/**abre modal*/
+	$("#modalCardProducto").css("display", "block");
+	
+	break;
+	}
+ 
+ 	vistaDetalleProductoGTM(data);
+
+}
+
+function crearModal(data){	
+	$("#modalCardBody").empty();
+	$("#modalCardBody").append("<h3 class='title-primary-empresas'>Empresas de construcción web asociadas</h3>");
+	$("#modalCardBody").append("<div id='carouselEmpresas' class='carousel slide' data-ride='carousel' data-interval='false' data-keyboard='true'><div class='carousel-inner wgt-carrousel-inner'></div></div>");
+	primerItem(data);
+	footerModal();
+}
+
+function crearModalDefault(data){
+	$("#modalCardBody").empty();
+	$("#modalCardBody").append("<h3 class='title-primary roboto-bold font-36'>"+data.titulo+"</h3>");
+	$("#modalCardBody").append("<p class='title-secondary font-16'>"+data.descripcionModal+"</p>");
+	$("#modalCardBody").append("<ul></ul>");
+	data.listModalCaracteristicaModel.forEach(function(caracteristica){
+		$("#modalCardBody  ul").append("<li class='d-flex'><div class='mr-3 wgt-img-detalle'><img src='"+caracteristica.imagenUrlCaracteristicaModal+"'></div> <div><p class='title-primary font-18 roboto-bold'>"+caracteristica.tituloCaracteristicaModal+"</p></div></li><div class='mrg-parrafo-caracteristica'><p class ='title-secondary'>"+caracteristica.descripcionCaracteristicaModal+"</p></div>");
+
+	});
+
+	$("#modalCardBody").append("<div class='container' style='display: none;'><div class='row'></div></div>");
+}
+
+function primerItem(data){
+	
+	var page = 0;
+	var items = 0;
+	
+	$("#modalCardBody .carousel .carousel-inner").append("<div class='item-0 carousel-item active'><div class='row'></div></div>");
+	data.empresas.forEach( function(empresa, indice, array) {
+		
+		if(items < 12){
+			$("#modalCardBody .carousel .carousel-inner .item-"+page+" .row").append("<div class ='col-6 col-md-4'><a class='text-decoration-none' target='_blank' href='"+empresa.url+"'><div class='wgt-card-empresa d-flex justify-content-center align-items-center'><img src='"+empresa.urlImage+"' alt='' class='img-fluid'></div></a></div>");	
+			items = items + 1;	
+		}else{
+			items = 0;
+			page = page + 1;
+			$("#modalCardBody .carousel .carousel-inner").append("<div class='item-"+page+" carousel-item'><div class='row'></div></div>");
+		}	
+	});
+	
+		$("#modalCardBody .carousel").append("<ol class='carousel-indicators'>");
+	
+	
+	
+	for (i = 0; i <= page; i++) {
+		  if(i == 0){
+			  $("#modalCardBody .carousel .carousel-indicators").append("<li data-target='#carouselEmpresas' data-slide-to='"+i+"' class='active'></li>");
+		  }else{
+			  $("#modalCardBody .carousel .carousel-indicators").append("<li data-target='#carouselEmpresas' data-slide-to='"+i+"'></li>");
+		  }
+		}
+	
+}
+
+
+
+function footerModal(){
+	$("#modalCardFooter").empty();
+	$("#modalCardFooter").append("<div class='container'><div class='row align-items-center'></div></div>");	
+	$("#modalCardFooter .container .row").append("<div class='col-md-12 mrg-top-footer'><button type='button' class='btn-secondary-tbk' data-dismiss='modal' aria-label='Close' onclick='cerrarModalCardProducto()'>Volver</button></div>");
+	$("#modalCardProducto").css("display", "block");
+}
+
+function cerrarModalCardProducto(){
+	/**cierra modal*/
+	$("#modalCardProducto").css("display", "none");
+}
